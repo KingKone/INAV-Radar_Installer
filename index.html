@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>INAV-Radar Installer v0.1</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="jquery-3.4.0.js"></script>
+  </head>
+  <body>
+    <div id="choose">
+      <center>
+        <span>This installer flashes the last INAV-Radar release from Github.</span><br>
+        <span>Please connect a ESP32-LoRa module and</span><br>
+        <span>choose the version you want to flash: </span><br>
+        <button onclick="getLastRelease('433')">433 MHz</button>
+        <button onclick="getLastRelease('868')">868 MHz</button>
+        <button onclick="getLastRelease('915')">915 MHz</button>
+      <center>
+    </div>
+    <div id="status" style="display:none;">
+      <center>
+
+        <span id="download">Download last release ...</span><br>
+        <span id="serial" style="display:none;">ESP32 module connected at: </span><br>
+        <span id="flash" style="display:none;">Flashing ...</span><br>
+        <pre id="output" style="display:none;"></pre>
+      <center>
+    </div>
+  </body>
+  <script type="text/javascript">
+    var downloadRelease = require('download-github-release');
+    var path = require('path');
+    var user = 'mistyk';
+    var repo = 'inavradar-ESP32';
+    var outputdir = path.resolve('.');
+    var leaveZipped = false;
+    function getLastRelease (mhz) {
+      $('#choose').hide();
+      $('#status').show();
+      // Define a function to filter releases.
+      function filterRelease(release) {
+        // Filter out prereleases.
+        return release.prerelease === true;
+      }
+
+      // Define a function to filter assets.
+      function filterAsset(asset) {
+        // Select assets that contain the string 'windows'.
+        return asset.name.indexOf('air-to-air-' + mhz) >= 0;
+      }
+
+      downloadRelease(user, repo, outputdir, filterRelease, filterAsset, leaveZipped)
+        .then(function() {
+          whichPort();
+        })
+        .catch(function(err) {
+          console.error(err.message);
+        });
+    }
+    function whichPort () {
+      chrome.serial.getDevices(function(ports) {
+        for (let port of ports) {
+            if (port.vendorId) {
+              console.log(port);
+                $('#serial').show();
+                $('#serial').append(port.path);
+                flash(port.path);
+            }
+        }
+      });
+    }
+    function flash (port) {
+      $('#flash').show();
+      $('#output').show();
+      var spawn = require('child_process').spawn;
+      var child = spawn('esptool.exe',
+            ['--port', port, 'write_flash', '-z', '--flash_mode', 'dio', '0x1000', 'air-to-air\\bootloader_dio_40m.bin', '0x8000', 'air-to-air\\default.bin', '0xe000', 'air-to-air\\boot_app0.bin', '0x10000', 'air-to-air\\firmware.bin', '0x291000', 'air-to-air\\fs.bin']
+      );
+      child.stdout.on('data',function (err) {
+        var out = String.fromCharCode.apply(null,err)
+        if (out.search('Writing at') != -1) {
+          $('#output').append('.');
+        }
+        if (out.search('Wrote') != -1) {
+          $('#output').append('\n' + out);
+        }
+        if (out.search('Wrote') == -1 && out.search('Writing at') == -1)  {
+          $('#output').append(out);
+        }
+      });
+      child.stderr.on('data',function (err) {
+        $('#output').append( String.fromCharCode.apply(null,err));
+      });
+      child.on('close', function () {
+        $('#choose').show();
+        $('#status').hide();
+        $('#flash').hide();
+        $('#output').hide();
+        $('#output').innerHTML('');
+      })
+
+    }
+  </script>
+</html>
