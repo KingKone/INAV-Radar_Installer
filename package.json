@@ -1,6 +1,6 @@
 {
-  "name": "INAV-Radar Installer v0.1",
-  "version": "0.1",
+  "name": "INAV-Radar Installer",
+  "version": "0.2",
   "main": "main.js",
   "dependencies": {
     "download-github-release": "^0.3.2"
