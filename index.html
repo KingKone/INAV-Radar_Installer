@@ -1,103 +1,383 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>INAV-Radar Installer v0.1</title>
+    <title>INAV-Radar Installer v0.2</title>
     <link rel="stylesheet" href="index.css">
     <script src="jquery-3.4.0.js"></script>
   </head>
   <body>
-    <div id="choose">
-      <center>
-        <span>This installer flashes the last INAV-Radar release from Github.</span><br>
-        <span>Please connect a ESP32-LoRa module and</span><br>
-        <span>choose the version you want to flash: </span><br>
-        <button onclick="getLastRelease('433')">433 MHz</button>
-        <button onclick="getLastRelease('868')">868 MHz</button>
-        <button onclick="getLastRelease('915')">915 MHz</button>
-      <center>
+    <div class="sigContain">
+      <div class="signal s1"></div>
+      <div class="signal s2"></div>
+      <div class="signal s3"></div>
+      <div class="signal s4"></div>
     </div>
-    <div id="status" style="display:none;">
-      <center>
+    <div id="ui">
 
-        <span id="download">Download last release ...</span><br>
-        <span id="serial" style="display:none;">ESP32 module connected at: </span><br>
-        <span id="flash" style="display:none;">Flashing ...</span><br>
-        <pre id="output" style="display:none;"></pre>
-      <center>
+      <div id="welcome">
+        <h1>Welcome to INAV-Radar</h1>
+        <p>This installer flashes an INAV-Radar ESP32 firmware release of your choice to an ESP32-LoRa module.</p>
+        <p>For ease of use please connect only <b>one</b> of the modules.</p>
+        <button class="next" onclick="whichPort()">Next</button>
+        <button class="back" onclick="profile()">Settings</button>
+      </div>
+
+      <div id="profile">
+        <h2>Profile</h2>
+        <p>You have 3 profiles to choose from:</p>
+        <input id="p1" type="radio" name="profile" value="1" checked>
+        <label for="p1"> Longer range and slower</label>
+        <p class="padd">
+          For finding your friends over long distances.<br>
+          LoRa spreading factor 9 and slower timings.
+        </p>
+        <input id="p2" type="radio" name="profile" value="2">
+        <label for="p2"> Faster but shorter range.</label>
+        <p class="padd">
+          For quick chases.<br>
+          LoRa spreading factor 7 and faster timings.
+        </p>
+        <input id="p3" type="radio" name="profile" value="3">
+        <label for="p3"> Custom </label>
+        <p class="padd"><button onclick="config()">Custom settings</button></p>
+        <button class="next" onclick="profileSave()">Save</button>
+        <button class="back" onclick="profileBack()">Back</button>
+      </div>
+
+      <div id="config">
+        <h2>Custom settings</h2>
+
+        <h3>General</h3>
+        <table id="cfgtab">
+          <tr>
+            <td class="td1">Version</td>
+            <td class="td2"></td>
+            <td class="td3" id="verval">1.2</td>
+          </tr>
+          <tr>
+            <td>Logging</td>
+            <td class="td2">
+              <label class="container">
+                <input type="checkbox" checked="checked">
+                <span class="checkmark"></span>
+              </label>
+            </td>
+            <td id="sfval">OFF</td>
+          </tr>
+        </table>
+
+        <h3>Radio</h3>
+        <table id="cfgtab">
+          <tr>
+            <td class="td1">Frequency</td>
+            <td class="td2"><input id="sf" type="range" name="profile" min="400" max="1000" value="868"  class="slider"></td>
+            <td class="td3" id="sfval">868.0 MHz</td>
+          </tr>
+          <tr>
+            <td>Bandwidth</td>
+            <td><input id="sf" type="range" name="profile" min="67" max="500" value="250" class="slider"></td>
+            <td id="sfval">250 kHz</td>
+          </tr>
+          <tr>
+            <td>Spreading factor</td>
+            <td><input id="sf" type="range" name="profile" min="7" max="12" value="9" class="slider"></td>
+            <td id="sfval">SF9</td>
+          </tr>
+          <tr>
+            <td>Coding rate</td>
+            <td><input id="sf" type="range" name="profile" min="4" max="8" value="5" class="slider"></td>
+            <td id="sfval">CR5</td>
+          </tr>
+          <tr>
+            <td>TX Power</td>
+            <td><input id="sf" type="range" name="profile" min="0" max="20" value="20" class="slider"></td>
+            <td id="sfval">TX20</td>
+          </tr>
+        </table>
+
+        <h3>MSP</h3>
+        <table id="cfgtab">
+          <tr>
+            <td class="td1">Version</td>
+            <td class="td2"></td>
+            <td class="td3" id="sfval">2</td>
+          </tr>
+          <tr>
+            <td>Timeout</td>
+            <td><input id="sf" type="range" name="profile" min="10" max="200" value="100" class="slider"></td>
+            <td id="sfval">100 ms</td>
+          </tr>
+          <tr>
+            <td>FC timeout</td>
+            <td><input id="sf" type="range" name="profile" min="0" max="20" value="6" class="slider"></td>
+            <td id="sfval">6 s</td>
+          </tr>
+        </table>
+        <button class="next" onclick="configSave()">Save</button>
+        <button class="back" onclick="profile()">Back</button>
+      </div>
+
+      <div id="nomodule">
+        <h2>No module detected!</h2>
+        <p>Maybe your system needs the driver for the ESP32-LoRa module serial adapter.</p>
+        <p>Please quit the installer and install the driver which can be found here:</p>
+        <button onclick="openSilabs()" >Silicon Labs website</button>
+        <button class="next" onclick="nw.App.quit()">Quit</button>
+      </div>
+
+      <div id="serial">
+        <h2>Serial port selection</h2>
+        <p>The installer could not be sure which serial port to use.</p>
+        <p>Please select the corresponding port:</p>
+        <div id="seriaports"></div>
+        <button class="next" onclick="serialSelect()">Next</button>
+      </div>
+
+      <div id="moduletype">
+        <h2>LoRa freqency selection</h2>
+        <p>INAV-Radar can use different frequencies, e.g. 433, 868 or 915 MHz.  </p>
+        <p>The freqency you choose must match the secification of your modules.  </p>
+        <p>Also please keep track of your countries regulations regarding radio transmissions.  </p>
+
+        <p>Please choose the matching frequency:</p>
+        <input id="freq1" type="radio" name="freq" value="433" checked>
+        <label for="freq1"> 433 MHz</label><br>
+        <input id="freq2" type="radio" name="freq" value="868">
+        <label for="freq2"> 868 MHz</label><br>
+        <input id="freq3" type="radio" name="freq" value="915">
+        <label for="freq3"> 915 MHz</label>
+        <button class="next" onclick="gitGetReleases()">Next</button>
+      </div>
+
+      <div id="checkversion">
+        <p>Checking GitHub for releases ...</p>
+        <p id="giterror"></p>
+      </div>
+
+      <div id="version">
+        <h2>Version selection</h2>
+        <p>The last release of INAV-Radar (<span id="vnum"></span>) will be flashed by default.</p>
+        <p>If you want a different version please make your selection:</p>
+        <div id="versions"></div>
+        <button class="next" onclick="getLastRelease(433)">Next</button>
+      </div>
+
+      <div id="status">
+        <h2 id="statustitle">Working on it</h2>
+        <div class="meter">
+          <span style="width: 0%"></span>
+        </div>
+        <p id="statustext">Downloading firmware ...</p>
+        <p id="statuserror"></p>
+        <span id="showoutput">Show output</span>
+        <pre id="releasenotes"></pre>
+        <pre id="output"></pre>
+        <button class="nextfin" id="fin" onclick="nw.App.quit()">Quit</button>
+      </div>
+
     </div>
   </body>
   <script type="text/javascript">
-    var downloadRelease = require('download-github-release');
-    var path = require('path');
+    // ------------------------------------------------------------------------- profile / config
+    function profile() {
+      $('#config').hide();
+      $('#welcome').hide();
+      $('#profile').show();
+    }
+    function profileBack() {
+      $('#welcome').show();
+      $('#profile').hide();
+    }
+    function config() {
+      $('#p3').prop('checked',true);
+      $('#profile').hide();
+      $('#config').show();
+    }
+    // ------------------------------------------------------------------------- git releases
+    var githubReleases;
     var user = 'mistyk';
     var repo = 'inavradar-ESP32';
+    var superagent5 = require('superagent');
+    function gitGetReleases() {
+      $('#moduletype').hide();
+      $('#checkversion').show();
+      var url = 'https://api.github.com/repos/' + user + '/' + repo + '/releases';
+        superagent5.get(url).end(function (err, res) {
+          if (err) {
+            $('#giterror').text(err);
+          } else {
+            console.log(res.body);
+            githubReleases = res.body;
+            for (var i = 0; i < 3; i++) {
+              if (i == 0) {
+                $('#versions').append('<input id="v' + i + '" type="radio" name="vers" value="' + i + '" checked>');
+                $('#vnum').text(res.body[i].tag_name);
+              } else {
+                $('#versions').append('<input id="v' + i + '" type="radio" name="vers" value="' + i + '">');
+              }
+              $('#versions').append('<label for="v' + i + '"> ' + res.body[i].tag_name + '</label><br>');
+            }
+            $('#checkversion').hide();
+            $('#version').show();
+          }
+        });
+    }
+    // ------------------------------------------------------------------------- git download
+    var downloadRelease = require('download-github-release');
+    var path = require('path');
     var outputdir = path.resolve('.');
     var leaveZipped = false;
     function getLastRelease (mhz) {
-      $('#choose').hide();
+      $('#releasenotes').text('### RELESE NOTES ###\n\nPLEASE READ!\n\n' + githubReleases[$('input[name=vers]:checked').val()].body);
+      $('#version').hide();
       $('#status').show();
       // Define a function to filter releases.
       function filterRelease(release) {
         // Filter out prereleases.
-        return release.prerelease === true;
+        return release.tag_name === githubReleases[$('input[name=vers]:checked').val()].tag_name;;
       }
 
       // Define a function to filter assets.
       function filterAsset(asset) {
         // Select assets that contain the string 'windows'.
-        return asset.name.indexOf('air-to-air-' + mhz) >= 0;
+        return asset.name.indexOf('air-to-air-' + $('input[name=freq]:checked').val()) >= 0;
       }
-
-      downloadRelease(user, repo, outputdir, filterRelease, filterAsset, leaveZipped)
+      function p (progress) {
+        $(".meter > span").width(progress*100 + "%");
+        if (progress == 1) $('#statustext').text('Extraxting ZIP ...');
+      }
+      downloadRelease(user, repo, outputdir, filterRelease, filterAsset, leaveZipped, p)
         .then(function() {
-          whichPort();
+          //whichPort();
+          $('#statustext').text('ZIP extracted');
+          flash();
         })
         .catch(function(err) {
-          console.error(err.message);
+          $('#statustext').text('Something went wrong:');
+          $('#statuserror').text(err.message);
         });
     }
+    // ------------------------------------------------------------------------- serial ports detection
+    var serialPorts = [];
     function whichPort () {
+      $('#welcome').hide();
       chrome.serial.getDevices(function(ports) {
+        console.log(ports);
         for (let port of ports) {
-            if (port.vendorId) {
-              console.log(port);
-                $('#serial').show();
-                $('#serial').append(port.path);
-                flash(port.path);
-            }
+          if (port.vendorId == 4292 && port.productId == 60000) serialPorts.push(port);
+          //serialPorts.push(port);
+        }
+        //console.log(serialPorts.length);
+        for (var i = 0; i < serialPorts.length; i++) {
+          $('#seriaports').prepend('<label for="s' + i + '"> ' + serialPorts[i].path + '</label><br>');
+          if (i == 0) {
+            $('#seriaports').prepend('<input id="s' + i + '" type="radio" name="port" value="' + serialPorts[i].path + '" checked>');
+
+          } else {
+            $('#seriaports').prepend('<input id="s' + i + '" type="radio" name="port" value="' + serialPorts[i].path + '">');
+          }
+        }
+
+        if (serialPorts.length == 0) $('#nomodule').show();
+        if (serialPorts.length == 1) $('#moduletype').show();
+        if (serialPorts.length > 1) {
+          $('#serial').show();
         }
       });
     }
-    function flash (port) {
-      $('#flash').show();
-      $('#output').show();
+    function serialSelect() {
+      $('#serial').hide();
+      $('#moduletype').show();
+    }
+    // ------------------------------------------------------------------------- flash module
+    var os = require('os');
+    function flash () {
+      $('#version').hide();
+      $('#status').show();
+      $('#statustext').text('Setting up ESPTOOL');
+      var cmd = 'esptool.exe';
+      var slash = '\\';
+      if (os.platform() == 'linux') {
+        cmd = 'esptool';
+        slash = '/';
+      }
       var spawn = require('child_process').spawn;
-      var child = spawn('esptool.exe',
-            ['--port', port, 'write_flash', '-z', '--flash_mode', 'dio', '0x1000', 'air-to-air\\bootloader_dio_40m.bin', '0x8000', 'air-to-air\\default.bin', '0xe000', 'air-to-air\\boot_app0.bin', '0x10000', 'air-to-air\\firmware.bin', '0x291000', 'air-to-air\\fs.bin']
+      var child = spawn(cmd,
+            ['--port',
+            $('input[name=port]:checked').val(),
+            'write_flash',
+            '-z',
+            '--flash_mode', 'dio',
+            '0x1000', 'air-to-air' + slash + 'bootloader_dio_40m.bin',
+            '0x8000', 'air-to-air' + slash + 'default.bin',
+            '0xe000', 'air-to-air' + slash + 'boot_app0.bin',
+            '0x10000', 'air-to-air' + slash + 'firmware.bin']
+            //'0x291000', 'air-to-air' + slash + 'fs.bin']
       );
+      $('#statustext').text('Flashing ...');
       child.stdout.on('data',function (err) {
         var out = String.fromCharCode.apply(null,err)
-        if (out.search('Writing at') != -1) {
+        if (out.search('Took') == -1 && out.search('Wrote') == -1 && out.search('%') != -1) {
+          var progress = out.substring(out.search('\\(')+1,out.search('%')-1);
+          //console.log(progress);
+
+          $(".meter > span").width(progress + "%");
+          //$('#output').append('.');
+        }
+
+        if ( out.search('Erasing') != -1) {
+          $('#statustext').text('Erasing flash ...');
+        }
+        if ( out.search('Took') == -1 && out.search('Wrote') == -1 && out.search('Writing at') != -1) {
           $('#output').append('.');
+          $('#statustext').text(out);
         }
         if (out.search('Wrote') != -1) {
           $('#output').append('\n' + out);
+          $('#statustext').text(out.substring(out.search('Wrote'),out.search('in')-2));
+          //$('#statustext').text(out);
         }
-        if (out.search('Wrote') == -1 && out.search('Writing at') == -1)  {
+        if (out != '.' && out.search('Took') == -1 && out.search('Wrote') == -1 && out.search('Writing at') == -1)  {
           $('#output').append(out);
+          $('#statustext').text(out);
         }
       });
       child.stderr.on('data',function (err) {
         $('#output').append( String.fromCharCode.apply(null,err));
+
       });
-      child.on('close', function () {
-        $('#choose').show();
-        $('#status').hide();
-        $('#flash').hide();
-        $('#output').hide();
-        $('#output').innerHTML('');
+      child.on('close', function (e) {
+        $('#fin').show();
+        if (e > 0) {
+          $('#statustext').text('Something went wrong, please see output for details.');
+        } else {
+          $('#statustext').text('Flashing complete!');
+
+        }
+      })
+      child.on('error', function (err) {
+        $('#statustext').text('Something went wrong:');
+        $('#statuserror').text(err.message);
       })
 
     }
-  </script>
+    // ------------------------------------------------------------------------- open si labs
+    function openSilabs() {
+      nw.Shell.openExternal('https://www.silabs.com/products/development-tools/software/usb-to-uart-bridge-vcp-drivers');
+    }
+    $('#showoutput').on('click', function (e) {
+      $('#releasenotes').toggle();
+      $('#output').toggle();
+      if ($('#showoutput').text() == 'Show output') $('#showoutput').text('Show releas notes')
+      else $('#showoutput').text('Show output')
+    })
+    $(document).on({
+      "contextmenu": function(e) {
+        console.log("ctx menu button:", e);
+
+        e.preventDefault();
+      }
+    });
+    //$('#ltest').text(navigator.language);
+    </script>
 </html>
